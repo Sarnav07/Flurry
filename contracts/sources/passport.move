@@ -101,3 +101,65 @@ public fun raw_reputation(passport: &YetiPassport): u64 { passport.raw_reputatio
 public fun accepted_proof_count(passport: &YetiPassport): u64 { passport.accepted_proof_count }
 
 public fun status(passport: &YetiPassport): u8 { passport.status }
+
+// ===========================================================================
+// Package-visible mutators — used by `proof::submit_proof` on a successful
+// accept. Two DISTINCT updates per the corrected decision (Requirement 7.1):
+// raw reputation increases by the signed score, and the accepted-proof count
+// increments by exactly 1. These are deliberately separate functions so the
+// two channels cannot be accidentally conflated.
+// ===========================================================================
+
+/// Add the signed `score` to the passport's raw reputation. (Requirement 7.1.)
+public(package) fun add_reputation(passport: &mut YetiPassport, score: u64) {
+    passport.raw_reputation = passport.raw_reputation + score;
+}
+
+/// Increment the accepted-proof count by exactly 1. (Requirement 7.1.)
+public(package) fun increment_accepted_proof_count(passport: &mut YetiPassport) {
+    passport.accepted_proof_count = passport.accepted_proof_count + 1;
+}
+
+// ===========================================================================
+// Test-only constructors / destructors.
+// ===========================================================================
+
+#[test_only]
+/// Build a `YetiPassport` directly (bypassing season/active checks) so proof
+/// tests can control the owner and faction. The object id is assigned by
+/// `object::new`; created as the first object in a fresh `test_scenario`
+/// transaction it is deterministic across runs (see `proof_submit_tests`).
+public fun new_passport_for_testing(
+    owner: address,
+    season_id: u64,
+    faction_id: u8,
+    ctx: &mut TxContext,
+): YetiPassport {
+    YetiPassport {
+        id: object::new(ctx),
+        owner,
+        created_ms: 0,
+        season_id,
+        faction_id,
+        raw_reputation: 0,
+        accepted_proof_count: 0,
+        status: STATUS_ACTIVE,
+    }
+}
+
+#[test_only]
+/// Destroy a test passport (it has no `store`, so tests cannot drop it via a
+/// public transfer; this deletes the UID).
+public fun destroy_for_testing(passport: YetiPassport) {
+    let YetiPassport {
+        id,
+        owner: _,
+        created_ms: _,
+        season_id: _,
+        faction_id: _,
+        raw_reputation: _,
+        accepted_proof_count: _,
+        status: _,
+    } = passport;
+    object::delete(id);
+}

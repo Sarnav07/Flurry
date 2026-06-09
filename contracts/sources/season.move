@@ -25,6 +25,20 @@ public struct Season has key {
     finalized: bool,
     settled: bool,
     allowed_factions: vector<u8>,
+    /// Expected network bytes (e.g. `b"localnet"` / `b"testnet"`), set once at
+    /// creation. Single source of truth for the `E_WRONG_NETWORK` replay-safety
+    /// check in `proof::submit_proof`. (Requirements 2.1, 7.4.)
+    network: vector<u8>,
+    /// Expected package id, set once at creation. Single source of truth for
+    /// the `E_WRONG_PACKAGE` replay-safety check in `proof::submit_proof`.
+    /// (Requirements 2.1, 7.5.)
+    expected_package_id: address,
+    /// The active trial id for this season, set once at creation. Single source
+    /// of truth for the `E_WRONG_TRIAL` check in `proof::submit_proof`
+    /// (Requirements 2.1, 7.6). Stored on the Season for the same reason as
+    /// `network`/`expected_package_id`: a payload field must be compared against
+    /// an authoritative on-chain value rather than a caller-supplied expectation.
+    trial_id: u64,
     territory_count: u64,
     shard_count: u64,
     /// One entry per address that has created a passport this season; enforces
@@ -45,6 +59,9 @@ public fun new_season(
     start_ms: u64,
     end_ms: u64,
     allowed_factions: vector<u8>,
+    network: vector<u8>,
+    expected_package_id: address,
+    trial_id: u64,
     territory_count: u64,
     shard_count: u64,
     ctx: &mut TxContext,
@@ -57,6 +74,9 @@ public fun new_season(
         finalized: false,
         settled: false,
         allowed_factions,
+        network,
+        expected_package_id,
+        trial_id,
         territory_count,
         shard_count,
         registered: table::new(ctx),
@@ -104,6 +124,24 @@ public fun territory_count(season: &Season): u64 { season.territory_count }
 
 public fun shard_count(season: &Season): u64 { season.shard_count }
 
+/// Expected network bytes set at creation (replay-safety source of truth for
+/// `E_WRONG_NETWORK`). Returns a copy. (Requirement 7.4.)
+public fun network(season: &Season): vector<u8> { season.network }
+
+/// Expected package id set at creation (replay-safety source of truth for
+/// `E_WRONG_PACKAGE`). (Requirement 7.5.)
+public fun expected_package_id(season: &Season): address { season.expected_package_id }
+
+/// The active trial id for this season (source of truth for `E_WRONG_TRIAL`).
+/// (Requirement 7.6.)
+public fun trial_id(season: &Season): u64 { season.trial_id }
+
+/// Number of accepted nullifier keys currently appended for this season.
+/// Used by tests and cleanup (Phase 4). (Requirement 11.1.)
+public fun accepted_nullifier_key_count(season: &Season): u64 {
+    vector::length(&season.accepted_nullifier_keys)
+}
+
 /// Whether `faction_id` is in this season's allowed faction set.
 public fun is_faction_allowed(season: &Season, faction_id: u8): bool {
     vector::contains(&season.allowed_factions, &faction_id)
@@ -124,6 +162,14 @@ public(package) fun register(season: &mut Season, addr: address) {
     table::add(&mut season.registered, addr, true);
 }
 
+/// Append an accepted nullifier digest to the per-season list so cleanup keys
+/// are recoverable without iterating the `NullifierStore` table on-chain
+/// (corrected decision 3). Called by `proof::submit_proof` on accept.
+/// (Requirement 11.1.)
+public(package) fun append_nullifier_key(season: &mut Season, key: vector<u8>) {
+    vector::push_back(&mut season.accepted_nullifier_keys, key);
+}
+
 #[test_only]
 /// Build a `Season` in-place for unit tests (NOT shared), so tests can exercise
 /// lifecycle transitions and passport creation without a separate share step.
@@ -132,6 +178,9 @@ public fun new_for_testing(
     start_ms: u64,
     end_ms: u64,
     allowed_factions: vector<u8>,
+    network: vector<u8>,
+    expected_package_id: address,
+    trial_id: u64,
     territory_count: u64,
     shard_count: u64,
     ctx: &mut TxContext,
@@ -144,6 +193,9 @@ public fun new_for_testing(
         finalized: false,
         settled: false,
         allowed_factions,
+        network,
+        expected_package_id,
+        trial_id,
         territory_count,
         shard_count,
         registered: table::new(ctx),

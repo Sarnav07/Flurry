@@ -62,3 +62,25 @@ public fun is_authorized(registry: &OracleSignerRegistry, pk: vector<u8>): bool 
 public fun init_for_testing(ctx: &mut TxContext) {
     init(ctx)
 }
+
+#[test_only]
+/// Build an `OracleSignerRegistry` in-place (NOT shared) for unit tests.
+public fun new_registry_for_testing(ctx: &mut TxContext): OracleSignerRegistry {
+    OracleSignerRegistry { id: object::new(ctx), signers: table::new(ctx) }
+}
+
+#[test_only]
+/// Authorize `pk` directly on a test registry (no `AdminCap` needed).
+public fun authorize_for_testing(registry: &mut OracleSignerRegistry, pk: vector<u8>) {
+    if (!table::contains(&registry.signers, pk)) {
+        table::add(&mut registry.signers, pk, true);
+    }
+}
+
+#[test_only]
+/// Drop a test registry (drops the signers table even if non-empty).
+public fun destroy_for_testing(registry: OracleSignerRegistry) {
+    let OracleSignerRegistry { id, signers } = registry;
+    table::drop(signers);
+    object::delete(id);
+}
