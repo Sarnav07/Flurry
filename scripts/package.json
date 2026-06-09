@@ -9,7 +9,15 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "gen:conformance": "tsx src/genConformanceVectors.ts",
-    "proof:roundtrip": "tsx src/proofRoundtrip.ts"
+    "proof:roundtrip": "tsx src/proofRoundtrip.ts",
+    "publish": "tsx src/publish.ts",
+    "init:season": "tsx src/init/season.ts",
+    "init:shards": "tsx src/init/shards.ts",
+    "init:territory": "tsx src/init/territory.ts",
+    "init:sponsor": "tsx src/init/sponsor.ts",
+    "init:impact": "tsx src/init/impact.ts",
+    "init:all": "tsx src/init/all.ts",
+    "register:oracle": "tsx src/registerOracle.ts"
   },
   "dependencies": {
     "@mysten/sui": "1.18.0",
