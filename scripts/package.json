@@ -7,9 +7,14 @@
   "scripts": {
     "build": "tsc -b",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "gen:conformance": "tsx src/genConformanceVectors.ts",
+    "proof:roundtrip": "tsx src/proofRoundtrip.ts"
   },
   "dependencies": {
+    "@mysten/sui": "1.18.0",
+    "@noble/curves": "^1.9.0",
+    "@noble/hashes": "^1.8.0",
     "@yeti-trials/shared": "workspace:*"
   }
 }
