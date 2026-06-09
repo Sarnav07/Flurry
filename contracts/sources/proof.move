@@ -282,6 +282,16 @@ public(package) fun insert_nullifier(
     table::add(&mut store.nullifiers, nullifier, issued_ms);
 }
 
+/// Remove an accepted nullifier digest from the store, reclaiming the storage
+/// rebate. Removing a digest not present is a tolerated no-op (guarded by
+/// `contains`). Package-visible: only `delete_cleanup_batch` calls it.
+/// (Requirements 11.5, 11.7.)
+public(package) fun remove_nullifier(store: &mut NullifierStore, nullifier: &vector<u8>) {
+    if (table::contains(&store.nullifiers, *nullifier)) {
+        table::remove(&mut store.nullifiers, *nullifier);
+    };
+}
+
 /// The full proof-acceptance pipeline (Requirement 7). Reconstructs the signed
 /// `ProofPayload` from the typed entry-function arguments, verifies the
 /// signature over those exact bytes, then runs the ordered context checks —
@@ -436,6 +446,109 @@ public fun submit_proof(
         expiry_ms,
         nullifier,
     );
+}
+
+// ===========================================================================
+// Cleanup batches (Phase 4) — caller-driven, bounded pruning of stale
+// season-scoped nullifier state after settlement. (Requirement 11.)
+// ===========================================================================
+
+/// A bounded grouping of stale season-scoped nullifier keys eligible for
+/// deletion after the season is settled. Built from exactly the caller-supplied
+/// keys (recoverable from `Season.accepted_nullifier_keys`); length is capped at
+/// `MAX_BATCH_SIZE` at creation so a single delete-batch transaction stays
+/// within gas limits. (Requirements 11.3, 11.4.)
+public struct CleanupBatch has key, store {
+    id: UID,
+    season_id: u64,
+    keys: vector<vector<u8>>,
+    deleted: bool,
+}
+
+/// Create a `CleanupBatch` from exactly the caller-supplied `keys` and transfer
+/// it to the caller so it persists for the delete step.
+///
+/// Requires the Season to be settled, else `E_CLEANUP_TOO_EARLY` (Requirement
+/// 11.2); aborts `E_BATCH_TOO_LARGE` when `keys` length exceeds `MAX_BATCH_SIZE`
+/// (500), bounding per-transaction gas (Requirement 11.4). `settle_season` does
+/// NOT auto-clear — pruning is entirely caller-driven via delete-batch. Emits
+/// `CleanupBatchCreated`. (Requirement 11.3.)
+#[allow(lint(self_transfer))]
+public fun create_cleanup_batch(season: &Season, keys: vector<vector<u8>>, ctx: &mut TxContext) {
+    let batch = build_cleanup_batch(season, keys, ctx);
+    transfer::transfer(batch, ctx.sender());
+}
+
+/// Shared construction logic for a `CleanupBatch`: enforce the settle and
+/// size guards, build the batch from exactly `keys`, and emit
+/// `CleanupBatchCreated`. The public entry transfers the result to the caller;
+/// the test-only variant returns it. (Requirements 11.2, 11.3, 11.4.)
+fun build_cleanup_batch(season: &Season, keys: vector<vector<u8>>, ctx: &mut TxContext): CleanupBatch {
+    assert!(season::is_settled(season), constants::e_cleanup_too_early());
+    let key_count = vector::length(&keys);
+    assert!(key_count <= constants::max_batch_size(), constants::e_batch_too_large());
+
+    let batch = CleanupBatch {
+        id: object::new(ctx),
+        season_id: season::season_id(season),
+        keys,
+        deleted: false,
+    };
+    events::emit_cleanup_batch_created(batch.season_id, key_count);
+    batch
+}
+
+/// Delete a `CleanupBatch`: remove EACH of its keys from BOTH the
+/// `NullifierStore` table AND `Season.accepted_nullifier_keys`, so the two
+/// stores shrink in lockstep and the per-season key list cannot become
+/// permanent bloat. Callable by anyone. Removing a key not present in either
+/// store is a tolerated no-op (guarded by `contains`). Aborts
+/// `E_CLEANUP_BATCH_ALREADY_DELETED` on a batch already deleted (Requirement
+/// 11.6). Emits `CleanupBatchDeleted`. (Requirements 11.5, 11.7, 11.8, 11.9.)
+public fun delete_cleanup_batch(
+    season: &mut Season,
+    store: &mut NullifierStore,
+    batch: &mut CleanupBatch,
+) {
+    assert!(!batch.deleted, constants::e_cleanup_batch_already_deleted());
+
+    let key_count = vector::length(&batch.keys);
+    let mut i = 0;
+    while (i < key_count) {
+        let key = vector::borrow(&batch.keys, i);
+        // Remove from BOTH stores in the same operation.
+        remove_nullifier(store, key);
+        season::remove_nullifier_key(season, key);
+        i = i + 1;
+    };
+
+    batch.deleted = true;
+    events::emit_cleanup_batch_deleted(batch.season_id, key_count);
+}
+
+/// Whether `batch` has been deleted (for tests / scripts).
+public fun cleanup_batch_deleted(batch: &CleanupBatch): bool { batch.deleted }
+
+/// Number of keys carried by `batch` (for tests / scripts).
+public fun cleanup_batch_key_count(batch: &CleanupBatch): u64 { vector::length(&batch.keys) }
+
+#[test_only]
+/// Delete a test `CleanupBatch`.
+public fun destroy_cleanup_batch_for_testing(batch: CleanupBatch) {
+    let CleanupBatch { id, season_id: _, keys: _, deleted: _ } = batch;
+    object::delete(id);
+}
+
+#[test_only]
+/// Create a `CleanupBatch` and RETURN it (same guards/event as the public
+/// entry, without the transfer-to-sender), so in-place test objects can stay
+/// within a single transaction.
+public fun create_cleanup_batch_for_testing(
+    season: &Season,
+    keys: vector<vector<u8>>,
+    ctx: &mut TxContext,
+): CleanupBatch {
+    build_cleanup_batch(season, keys, ctx)
 }
 
 #[test_only]

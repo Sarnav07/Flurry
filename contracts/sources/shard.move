@@ -107,6 +107,29 @@ public fun new_shard_for_testing(
 }
 
 #[test_only]
+/// Build a `ScoreShard` in-place with preset totals, so territory/impact tests
+/// can craft a known power distribution without driving the full proof
+/// pipeline.
+public fun new_shard_with_totals_for_testing(
+    season_id: u64,
+    faction_id: u8,
+    shard_id: u64,
+    raw_score_total: u64,
+    territory_power_total: u64,
+    ctx: &mut TxContext,
+): ScoreShard {
+    ScoreShard {
+        id: object::new(ctx),
+        season_id,
+        faction_id,
+        shard_id,
+        raw_score_total,
+        territory_power_total,
+        accepted_proof_count: 0,
+    }
+}
+
+#[test_only]
 /// Delete a test shard.
 public fun destroy_for_testing(shard: ScoreShard) {
     let ScoreShard {

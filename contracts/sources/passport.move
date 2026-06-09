@@ -148,6 +148,29 @@ public fun new_passport_for_testing(
 }
 
 #[test_only]
+/// Build a `YetiPassport` with a preset raw reputation, so the
+/// reputation/territory separation test can assert finalization leaves a
+/// non-zero reputation untouched.
+public fun new_passport_with_rep_for_testing(
+    owner: address,
+    season_id: u64,
+    faction_id: u8,
+    raw_reputation: u64,
+    ctx: &mut TxContext,
+): YetiPassport {
+    YetiPassport {
+        id: object::new(ctx),
+        owner,
+        created_ms: 0,
+        season_id,
+        faction_id,
+        raw_reputation,
+        accepted_proof_count: 0,
+        status: STATUS_ACTIVE,
+    }
+}
+
+#[test_only]
 /// Destroy a test passport (it has no `store`, so tests cannot drop it via a
 /// public transfer; this deletes the UID).
 public fun destroy_for_testing(passport: YetiPassport) {

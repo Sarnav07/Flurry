@@ -142,6 +142,13 @@ public fun accepted_nullifier_key_count(season: &Season): u64 {
     vector::length(&season.accepted_nullifier_keys)
 }
 
+/// Whether `key` is currently present in the per-season accepted-nullifier-key
+/// list. Used by cleanup tests to assert lockstep removal with the
+/// `NullifierStore`. (Requirement 11.5.)
+public fun contains_nullifier_key(season: &Season, key: &vector<u8>): bool {
+    vector::contains(&season.accepted_nullifier_keys, key)
+}
+
 /// Whether `faction_id` is in this season's allowed faction set.
 public fun is_faction_allowed(season: &Season, faction_id: u8): bool {
     vector::contains(&season.allowed_factions, &faction_id)
@@ -168,6 +175,18 @@ public(package) fun register(season: &mut Season, addr: address) {
 /// (Requirement 11.1.)
 public(package) fun append_nullifier_key(season: &mut Season, key: vector<u8>) {
     vector::push_back(&mut season.accepted_nullifier_keys, key);
+}
+
+/// Remove an accepted nullifier key from the per-season list during cleanup
+/// delete-batch (Phase 4). Removing a key not present is a tolerated no-op
+/// (guarded by `index_of`), so the per-season list shrinks in lockstep with the
+/// `NullifierStore` and cannot become permanent bloat. (Requirements 11.5,
+/// 11.7, 11.8, 11.9.)
+public(package) fun remove_nullifier_key(season: &mut Season, key: &vector<u8>) {
+    let (found, idx) = vector::index_of(&season.accepted_nullifier_keys, key);
+    if (found) {
+        vector::remove(&mut season.accepted_nullifier_keys, idx);
+    }
 }
 
 #[test_only]
