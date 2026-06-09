@@ -1,0 +1,13 @@
+packages:
+  - "shared"
+  - "orchestrator"
+  - "scripts"
+
+# Allow esbuild (pulled in by vitest) to run its install build script so the
+# ignored-builds guard does not block workspace commands.
+onlyBuiltDependencies:
+  - esbuild
+
+# Do not re-run `pnpm install` before every `pnpm run`/`pnpm exec`. The check
+# otherwise fails on the esbuild build-approval gate even when deps are present.
+verifyDepsBeforeRun: false

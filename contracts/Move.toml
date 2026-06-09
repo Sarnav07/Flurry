@@ -1,0 +1,17 @@
+[package]
+name = "yeti_trials"
+edition = "2024"
+
+# Sui framework dependency.
+#
+# ASSUMPTION: the installed Sui CLI is 1.73.0 (homebrew). Modern Sui CLIs
+# (>= 1.45) auto-resolve the framework as a system dependency, but this task
+# requires an explicitly pinned git dependency for reproducibility across
+# environments. We pin to the `framework/testnet` branch, which tracks the
+# published testnet framework release the local CLI is compatible with. If the
+# CLI is upgraded, re-pin this `rev` to the matching `testnet-v<x.y.z>` tag.
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet" }
+
+[addresses]
+yeti_trials = "0x0"

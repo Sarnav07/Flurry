@@ -1,0 +1,28 @@
+{
+  "name": "@yeti-trials/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Single source of truth for the TS<->Move byte contract: constants, BCS layout, signed-message builder, and nullifier derivation.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./constants": {
+      "types": "./dist/constants.d.ts",
+      "import": "./dist/constants.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mysten/bcs": "1.2.1",
+    "@mysten/sui": "1.18.0"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "@yeti-trials/orchestrator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Fastify demo-oracle / frontend API / chain reader service. Reuses @yeti-trials/shared for all byte-layout work.",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@yeti-trials/shared": "workspace:*"
+  }
+}
