@@ -26,6 +26,7 @@ import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { decodeSuiPrivateKey } from "@mysten/sui/cryptography";
 import { Transaction } from "@mysten/sui/transactions";
 import type {
+  SuiEvent,
   SuiObjectChange,
   SuiTransactionBlockResponse,
 } from "@mysten/sui/client";
@@ -183,6 +184,49 @@ export function adminAddress(): string {
   return loadAdminKeypair().getPublicKey().toSuiAddress();
 }
 
+/**
+ * Load the PLAYER keypair used to sign `submit_proof` (the wallet that owns the
+ * `YetiPassport`; `submit_proof` asserts `wallet == passport.owner == sender`).
+ *
+ * Tries `PLAYER_PRIVATE_KEY`, then the keystore file at `PLAYER_KEYSTORE_PATH`
+ * (entry index `PLAYER_KEYSTORE_INDEX`, default 0), and finally FALLS BACK to
+ * the admin keypair. The fallback is the documented demo posture: in the
+ * Genesis Frost demo the admin wallet also acts as the player, so a single
+ * funded key drives the whole flow. Supply `PLAYER_PRIVATE_KEY` to sign as a
+ * distinct wallet.
+ */
+export function loadPlayerKeypair(): Ed25519Keypair {
+  const direct = process.env["PLAYER_PRIVATE_KEY"]?.trim();
+  if (direct) return keypairFromEnvString(direct);
+
+  const keystorePath = process.env["PLAYER_KEYSTORE_PATH"]?.trim();
+  if (keystorePath) {
+    if (!existsSync(keystorePath)) {
+      throw new Error(`PLAYER_KEYSTORE_PATH does not exist: ${keystorePath}`);
+    }
+    const parsed = JSON.parse(readFileSync(keystorePath, "utf8")) as unknown;
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      throw new Error(
+        `keystore at ${keystorePath} must be a non-empty JSON array of base64 keys`,
+      );
+    }
+    const index = Number(process.env["PLAYER_KEYSTORE_INDEX"] ?? "0");
+    const entry = parsed[index];
+    if (typeof entry !== "string") {
+      throw new Error(`keystore entry at index ${index} is not a string`);
+    }
+    return keypairFromFlaggedBase64(entry);
+  }
+
+  // Demo fallback: the admin wallet is also the player.
+  return loadAdminKeypair();
+}
+
+/** The 0x address of the player keypair (admin by default — see {@link loadPlayerKeypair}). */
+export function playerAddress(): string {
+  return loadPlayerKeypair().getPublicKey().toSuiAddress();
+}
+
 // ===========================================================================
 // Deployment artifact: deployed.<network>.json
 // ===========================================================================
@@ -325,13 +369,16 @@ export function requireArtifactField<K extends keyof DeployedArtifact>(
  * Sign and execute a PTB with the admin keypair, waiting for the transaction to
  * be available and returning the full response with effects + object changes +
  * events. Throws if execution did not reach `success`.
+ *
+ * Pass `options.signer` to sign as a different wallet (e.g. the player keypair
+ * for `submit_proof`). Defaults to the admin keypair.
  */
 export async function signAndRun(
   tx: Transaction,
-  options: { client?: SuiClient } = {},
+  options: { client?: SuiClient; signer?: Ed25519Keypair } = {},
 ): Promise<SuiTransactionBlockResponse> {
   const client = options.client ?? getClient();
-  const keypair = loadAdminKeypair();
+  const keypair = options.signer ?? loadAdminKeypair();
   const res = await client.signAndExecuteTransaction({
     signer: keypair,
     transaction: tx,
@@ -350,6 +397,45 @@ export async function signAndRun(
     );
   }
   return res;
+}
+
+/** Outcome of an abort-tolerant PTB execution. */
+export interface RunResult {
+  /** Whether the transaction reached `success`. */
+  success: boolean;
+  /** The full transaction response (committed even on a Move abort). */
+  response: SuiTransactionBlockResponse;
+  /** The raw Move error string when the transaction failed, else undefined. */
+  error?: string;
+}
+
+/**
+ * Sign and execute a PTB WITHOUT throwing on a Move abort. A Move abort still
+ * commits a failed transaction (gas is charged), so the response — including
+ * its `effects.status.error` string — is returned for the caller to inspect.
+ *
+ * This is the path the replay / time-window assertions use: they expect a
+ * specific abort and need to read its code rather than crash. A non-abort
+ * execution failure (e.g. a network error during submission) still throws.
+ */
+export async function signAndRunAllowAbort(
+  tx: Transaction,
+  options: { client?: SuiClient; signer?: Ed25519Keypair } = {},
+): Promise<RunResult> {
+  const client = options.client ?? getClient();
+  const keypair = options.signer ?? loadAdminKeypair();
+  const res = await client.signAndExecuteTransaction({
+    signer: keypair,
+    transaction: tx,
+    options: { showEffects: true, showObjectChanges: true, showEvents: true },
+  });
+  await client.waitForTransaction({ digest: res.digest });
+  const status = res.effects?.status?.status;
+  if (status === "success") {
+    return { success: true, response: res };
+  }
+  const error = res.effects?.status?.error ?? "unknown error";
+  return { success: false, response: res, error };
 }
 
 /** All `created` object changes from a transaction response. */
@@ -426,4 +512,74 @@ export function target(
   fnName: string,
 ): `${string}::${string}::${string}` {
   return `${packageId}::${moduleName}::${fnName}`;
+}
+
+// ===========================================================================
+// Event extraction
+// ===========================================================================
+
+/**
+ * All emitted events from a transaction whose fully-qualified `type` ENDS WITH
+ * `typeSuffix` (e.g. `"::events::ProofAccepted"`), in emission order.
+ */
+export function eventsByType(
+  res: SuiTransactionBlockResponse,
+  typeSuffix: string,
+): SuiEvent[] {
+  return (res.events ?? []).filter((e) => e.type.endsWith(typeSuffix));
+}
+
+/**
+ * The single event of type `*typeSuffix` and its parsed JSON fields. Throws if
+ * zero or more than one matched, so an assertion like "exactly one
+ * `ProofAccepted` was emitted" is unambiguous.
+ */
+export function requireEvent(
+  res: SuiTransactionBlockResponse,
+  typeSuffix: string,
+): Record<string, unknown> {
+  const matches = eventsByType(res, typeSuffix);
+  if (matches.length === 0) {
+    throw new Error(`no event of type *${typeSuffix} in tx ${res.digest}`);
+  }
+  if (matches.length > 1) {
+    throw new Error(
+      `expected exactly one *${typeSuffix} event, found ${matches.length} in tx ${res.digest}`,
+    );
+  }
+  return (matches[0]!.parsedJson ?? {}) as Record<string, unknown>;
+}
+
+/** The id of the single created object of type `*typeSuffix` (any owner). */
+export function createdAnyObjectIdByType(
+  res: SuiTransactionBlockResponse,
+  typeSuffix: string,
+): string {
+  return createdObjectIdByType(res, typeSuffix);
+}
+
+// ===========================================================================
+// dev-inspect return-value decoding (u64 / bool)
+// ===========================================================================
+
+/** The first return value's raw little-endian bytes from a devInspect result. */
+function firstReturnBytes(returnValues: unknown): number[] | null {
+  if (!Array.isArray(returnValues) || returnValues.length === 0) return null;
+  const first = returnValues[0] as [number[], string];
+  return Array.isArray(first?.[0]) ? first[0] : null;
+}
+
+/** Decode a Move `u64` return value (8-byte little-endian) as a bigint. */
+export function decodeU64Return(returnValues: unknown): bigint | null {
+  const bytes = firstReturnBytes(returnValues);
+  if (!bytes) return null;
+  let acc = 0n;
+  for (let i = 0; i < 8; i++) acc += BigInt(bytes[i] ?? 0) << BigInt(i * 8);
+  return acc;
+}
+
+/** Decode a Move `bool` return value (1 byte) from a devInspect result. */
+export function decodeBoolReturn(returnValues: unknown): boolean | null {
+  const bytes = firstReturnBytes(returnValues);
+  return bytes && bytes.length >= 1 ? bytes[0] === 1 : null;
 }
