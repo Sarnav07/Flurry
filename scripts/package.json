@@ -21,12 +21,14 @@
     "submit:proof": "tsx src/submitProof.ts",
     "finalize:territory": "tsx src/finalizeTerritory.ts",
     "finalize:impact": "tsx src/finalizeImpact.ts",
-    "cleanup:batch": "tsx src/cleanupBatch.ts"
+    "cleanup:batch": "tsx src/cleanupBatch.ts",
+    "smoke": "tsx src/smoke.ts"
   },
   "dependencies": {
     "@mysten/sui": "1.18.0",
     "@noble/curves": "^1.9.0",
     "@noble/hashes": "^1.8.0",
+    "@yeti-trials/orchestrator": "workspace:*",
     "@yeti-trials/shared": "workspace:*"
   }
 }

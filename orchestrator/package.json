@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Fastify demo-oracle / frontend API / chain reader service. Reuses @yeti-trials/shared for all byte-layout work.",
   "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc -b",
     "dev": "tsx watch src/index.ts",

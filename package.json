@@ -12,7 +12,8 @@
     "test": "pnpm -r run test",
     "typecheck": "pnpm -r exec tsc --noEmit",
     "move:build": "sui move build --path contracts",
-    "move:test": "sui move test --path contracts"
+    "move:test": "sui move test --path contracts",
+    "smoke": "pnpm --filter @yeti-trials/scripts run smoke"
   },
   "devDependencies": {
     "@types/node": "22.10.5",

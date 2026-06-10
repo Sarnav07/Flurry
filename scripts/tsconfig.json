@@ -6,6 +6,6 @@
     "outDir": "./dist",
     "tsBuildInfoFile": "./dist/.tsbuildinfo"
   },
-  "references": [{ "path": "../shared" }],
+  "references": [{ "path": "../shared" }, { "path": "../orchestrator" }],
   "include": ["src/**/*.ts"]
 }

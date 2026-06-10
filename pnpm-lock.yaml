@@ -50,6 +50,9 @@ importers:
       '@noble/hashes':
         specifier: ^1.8.0
         version: 1.8.0
+      '@yeti-trials/orchestrator':
+        specifier: workspace:*
+        version: link:../orchestrator
       '@yeti-trials/shared':
         specifier: workspace:*
         version: link:../shared
