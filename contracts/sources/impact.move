@@ -18,6 +18,10 @@ use yeti_trials::constants;
 use yeti_trials::events;
 use yeti_trials::territory::{Self, TerritoryMap};
 
+/// Number of factions / verified recipients (one per faction id). Mirrors the
+/// local `FACTION_COUNT` in `territory.move`. (Audit finding M-2.)
+const FACTION_COUNT: u64 = 4;
+
 /// Shared escrow holding a season's impact allocation.
 public struct ImpactEscrow has key {
     id: UID,
@@ -31,6 +35,9 @@ public struct ImpactEscrow has key {
 /// Create and SHARE an empty `ImpactEscrow` with the per-faction verified
 /// recipients. (Requirement 10.1 setup.)
 public fun new_escrow(season_id: u64, recipients: vector<address>, ctx: &mut TxContext) {
+    // SECURITY (audit finding M-2): require exactly one recipient per faction so
+    // `disburse` can never index out of bounds on the winning faction id.
+    assert!(vector::length(&recipients) == FACTION_COUNT, constants::e_invalid_recipients());
     transfer::share_object(ImpactEscrow {
         id: object::new(ctx),
         season_id,
@@ -95,6 +102,8 @@ public fun new_escrow_for_testing(
     recipients: vector<address>,
     ctx: &mut TxContext,
 ): ImpactEscrow {
+    // Mirror the production length guard (audit finding M-2) so tests exercise it.
+    assert!(vector::length(&recipients) == FACTION_COUNT, constants::e_invalid_recipients());
     ImpactEscrow {
         id: object::new(ctx),
         season_id,

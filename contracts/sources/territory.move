@@ -16,8 +16,16 @@
 /// shard in with `add_shard_power` (which reads `territory_power_total` by
 /// reference), then hands the tally to `finalize_territory`. `PowerTally` has
 /// NO abilities, so it cannot be dropped or stored — it MUST be consumed by
-/// `finalize_territory`, making "summed across the supplied shards" structurally
-/// enforced rather than a convention.
+/// `finalize_territory`.
+///
+/// SECURITY (audit finding H-1): the hot-potato shape structurally enforces
+/// only that the tally is *consumed*, not that it was folded from the *correct*
+/// shards. The tally therefore also VALIDATES its inputs: every folded shard's
+/// `season_id` must match the tally (`E_SHARD_WRONG_SEASON`), no shard may be
+/// folded twice (`E_DUPLICATE_SHARD`, tracked by `object::id`), and at finalize
+/// the tally and map season ids must match the season (`E_TALLY_SEASON_MISMATCH`)
+/// and the folded set must be complete — exactly `shard_count * FACTION_COUNT`
+/// distinct shards (`E_INCOMPLETE_TALLY`).
 module yeti_trials::territory;
 
 use yeti_trials::constants;
@@ -54,6 +62,10 @@ public struct TerritoryMap has key {
 public struct PowerTally {
     season_id: u64,
     faction_power: vector<u64>,
+    /// Object ids of the shards already folded in. Used to validate the folded
+    /// set: rejects duplicates (`E_DUPLICATE_SHARD`) and is length-checked for
+    /// completeness at finalize (`E_INCOMPLETE_TALLY`). (Audit finding H-1.)
+    folded: vector<ID>,
 }
 
 /// Create and SHARE a `TerritoryMap` with each of the four factions holding one
@@ -76,6 +88,7 @@ public fun begin_power_tally(season: &Season): PowerTally {
     PowerTally {
         season_id: season::season_id(season),
         faction_power: vector[0u64, 0u64, 0u64, 0u64],
+        folded: vector[],
     }
 }
 
@@ -83,7 +96,17 @@ public fun begin_power_tally(season: &Season): PowerTally {
 /// tally under that shard's faction. Reads the shard by reference — raw
 /// reputation and `raw_score_total` are never read here and never written
 /// anywhere. (Requirements 8.3, 9.2.)
+///
+/// SECURITY (audit finding H-1): rejects a shard whose `season_id` does not
+/// match the tally (`E_SHARD_WRONG_SEASON`) and a shard that was already folded
+/// (`E_DUPLICATE_SHARD`), so the tally cannot be poisoned with foreign-season or
+/// double-counted shard power.
 public fun add_shard_power(tally: &mut PowerTally, shard: &ScoreShard) {
+    assert!(shard::season_id(shard) == tally.season_id, constants::e_shard_wrong_season());
+    let sid = object::id(shard);
+    assert!(!vector::contains(&tally.folded, &sid), constants::e_duplicate_shard());
+    vector::push_back(&mut tally.folded, sid);
+
     let f = (shard::faction_id(shard) as u64);
     let current = *vector::borrow(&tally.faction_power, f);
     *vector::borrow_mut(&mut tally.faction_power, f) = current + shard::territory_power_total(shard);
@@ -108,7 +131,21 @@ public fun finalize_territory(season: &Season, map: &mut TerritoryMap, tally: Po
     assert!(season::is_finalized(season), constants::e_season_not_finalized());
     assert!(!map.finalized, constants::e_territory_already_finalized());
 
-    let PowerTally { season_id: _, faction_power } = tally;
+    let PowerTally { season_id: tally_season_id, faction_power, folded } = tally;
+
+    // SECURITY (audit finding H-1): the tally and the map must belong to this
+    // season, and the folded set must be the COMPLETE canonical set — exactly
+    // `shard_count * FACTION_COUNT` distinct shards (duplicates already rejected
+    // in `add_shard_power`). This prevents finalizing from a partial or
+    // foreign-season shard set.
+    assert!(
+        tally_season_id == season::season_id(season) && map.season_id == season::season_id(season),
+        constants::e_tally_season_mismatch(),
+    );
+    assert!(
+        vector::length(&folded) == season::shard_count(season) * FACTION_COUNT,
+        constants::e_incomplete_tally(),
+    );
 
     let winner = compute_winner(&faction_power, map.underdog_multiplier);
 

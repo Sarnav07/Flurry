@@ -80,6 +80,13 @@ const E_CLEANUP_TOO_EARLY: u64 = 20;
 const E_BATCH_TOO_LARGE: u64 = 21;
 const E_CLEANUP_BATCH_ALREADY_DELETED: u64 = 22;
 const E_TERRITORY_ALREADY_FINALIZED: u64 = 23;
+// Security audit hardening — territory tally validation (H-1) and escrow
+// recipient-vector validation (M-2).
+const E_SHARD_WRONG_SEASON: u64 = 24;
+const E_DUPLICATE_SHARD: u64 = 25;
+const E_TALLY_SEASON_MISMATCH: u64 = 26;
+const E_INCOMPLETE_TALLY: u64 = 27;
+const E_INVALID_RECIPIENTS: u64 = 28;
 
 public fun e_no_passport(): u64 { E_NO_PASSPORT }
 public fun e_not_owner(): u64 { E_NOT_OWNER }
@@ -104,3 +111,9 @@ public fun e_cleanup_too_early(): u64 { E_CLEANUP_TOO_EARLY }
 public fun e_batch_too_large(): u64 { E_BATCH_TOO_LARGE }
 public fun e_cleanup_batch_already_deleted(): u64 { E_CLEANUP_BATCH_ALREADY_DELETED }
 public fun e_territory_already_finalized(): u64 { E_TERRITORY_ALREADY_FINALIZED }
+// Security audit hardening accessors (H-1, M-2).
+public fun e_shard_wrong_season(): u64 { E_SHARD_WRONG_SEASON }
+public fun e_duplicate_shard(): u64 { E_DUPLICATE_SHARD }
+public fun e_tally_season_mismatch(): u64 { E_TALLY_SEASON_MISMATCH }
+public fun e_incomplete_tally(): u64 { E_INCOMPLETE_TALLY }
+public fun e_invalid_recipients(): u64 { E_INVALID_RECIPIENTS }

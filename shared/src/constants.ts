@@ -86,6 +86,13 @@ export const ABORT_CODE = {
   E_BATCH_TOO_LARGE: 21,
   E_CLEANUP_BATCH_ALREADY_DELETED: 22,
   E_TERRITORY_ALREADY_FINALIZED: 23,
+  // Security audit hardening — territory tally validation (H-1) and escrow
+  // recipient-vector validation (M-2).
+  E_SHARD_WRONG_SEASON: 24,
+  E_DUPLICATE_SHARD: 25,
+  E_TALLY_SEASON_MISMATCH: 26,
+  E_INCOMPLETE_TALLY: 27,
+  E_INVALID_RECIPIENTS: 28,
 } as const;
 
 export type AbortCodeName = keyof typeof ABORT_CODE;
@@ -132,4 +139,14 @@ export const ABORT_MESSAGES: Readonly<Record<AbortCode, string>> = {
     "Cleanup batch has already been deleted",
   [ABORT_CODE.E_TERRITORY_ALREADY_FINALIZED]:
     "Territory has already been finalized",
+  [ABORT_CODE.E_SHARD_WRONG_SEASON]:
+    "Folded shard's season id does not match the tally's season id",
+  [ABORT_CODE.E_DUPLICATE_SHARD]:
+    "Shard has already been folded into this tally",
+  [ABORT_CODE.E_TALLY_SEASON_MISMATCH]:
+    "Tally or territory-map season id does not match the season at finalize",
+  [ABORT_CODE.E_INCOMPLETE_TALLY]:
+    "Folded shard count does not equal the canonical set (shard_count * faction_count)",
+  [ABORT_CODE.E_INVALID_RECIPIENTS]:
+    "Escrow recipient vector length does not equal the faction count",
 };

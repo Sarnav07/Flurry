@@ -25,6 +25,7 @@ const FUNDED: u64 = 9_000;
 // Abort codes mirrored from constants.move.
 const E_IMPACT_ALREADY_FINALIZED: u64 = 18;
 const E_SEASON_NOT_FINALIZED: u64 = 19;
+const E_INVALID_RECIPIENTS: u64 = 28;
 
 fun recipients(): vector<address> { vector[R0, R1, R2, R3] }
 
@@ -109,6 +110,24 @@ fun disburse_before_territory_finalize_aborts() {
         impact::disburse(&mut escrow, &map, ctx);
 
         territory::destroy_for_testing(map);
+        impact::destroy_for_testing(escrow);
+    };
+    scenario.end();
+}
+
+// Feature: yeti-trials-backend, audit finding M-2: recipient-vector length is validated
+//
+// Creating an escrow with a recipient vector whose length != FACTION_COUNT (4)
+// aborts E_INVALID_RECIPIENTS — so `disburse` can never index out of bounds on
+// the winning faction id.
+#[test]
+#[expected_failure(abort_code = E_INVALID_RECIPIENTS, location = yeti_trials::impact)]
+fun new_escrow_wrong_recipient_count_aborts() {
+    let mut scenario = ts::begin(OPERATOR);
+    {
+        let ctx = scenario.ctx();
+        // Only three recipients (missing one faction) — must abort.
+        let escrow = impact::new_escrow_for_testing(SEASON_ID, vector[R0, R1, R2], ctx);
         impact::destroy_for_testing(escrow);
     };
     scenario.end();

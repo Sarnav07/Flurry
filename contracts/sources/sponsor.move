@@ -8,6 +8,7 @@
 module yeti_trials::sponsor;
 
 use yeti_trials::events;
+use yeti_trials::registry::AdminCap;
 
 /// A shared, display-only sponsor slot.
 public struct SponsorSlot has key {
@@ -20,7 +21,12 @@ public struct SponsorSlot has key {
 
 /// Create and SHARE a `SponsorSlot`, storing the fields and emitting
 /// `SponsorSlotCreated`. (Requirement 12.1.)
+///
+/// SECURITY (audit finding M-1): gated by `&AdminCap` (the cap is an
+/// authorization witness only), consistent with `registry`'s admin-gated
+/// functions, so the display metadata cannot be created by an arbitrary account.
 public fun create_slot(
+    _admin: &AdminCap,
     name: vector<u8>,
     trial_id: u64,
     action_label: vector<u8>,
@@ -35,7 +41,12 @@ public fun create_slot(
 
 /// Update a `SponsorSlot`'s stored fields and emit `SponsorSlotUpdated`.
 /// (Requirement 12.2.)
+///
+/// SECURITY (audit finding M-1): gated by `&AdminCap` (authorization witness
+/// only) so an arbitrary account cannot rewrite the shared slot's display
+/// metadata.
 public fun update_slot(
+    _admin: &AdminCap,
     slot: &mut SponsorSlot,
     name: vector<u8>,
     trial_id: u64,

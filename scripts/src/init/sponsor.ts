@@ -36,11 +36,14 @@ export async function initSponsor(client?: SuiClient): Promise<DeployedArtifact>
   const c = client ?? getClient(network);
   const artifact = loadArtifact(network);
   const packageId = requireArtifactField(artifact, "packageId");
+  const adminCap = requireArtifactField(artifact, "adminCap");
 
   const tx = new Transaction();
   tx.moveCall({
     target: target(packageId, "sponsor", "create_slot"),
     arguments: [
+      // M-1: create_slot is AdminCap-gated; pass the cap as the first argument.
+      tx.object(adminCap),
       tx.pure.vector("u8", bytes(SPONSOR_NAME)),
       tx.pure.u64(GENESIS_TRIAL_ID),
       tx.pure.vector("u8", bytes(SPONSOR_ACTION_LABEL)),

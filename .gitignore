@@ -26,7 +26,4 @@ deployed.*.json
 
 # Local-only planning & spec docs (not tracked)
 .kiro/
-IMPLEMENTATION_PLAN.md
-YETI_TRIALS_BACKEND_PROMPT.md
-YETI_TRIALS_WHITEPAPER.md
-YETI_TRIALS_FRONTEND_PROMPT.md
+docs/
