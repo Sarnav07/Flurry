@@ -11,7 +11,12 @@ export interface FeedItem {
   timestampMs: bigint | null;
 }
 
-const REFRESH_EVENTS = new Set(['ScoreShardUpdated', 'TerritoryFinalized']);
+const REFRESH_EVENTS = new Set([
+  'ScoreShardUpdated',
+  'TerritoryFinalized',
+  'ImpactFinalized',
+  'CleanupBatchDeleted',
+]);
 
 /**
  * Polls the package `events` module and surfaces a recent activity feed. When a
