@@ -1,10 +1,15 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { SuiClientProvider, WalletProvider } from '@mysten/dapp-kit';
 import { useState, type ReactNode } from 'react';
 
+import { defaultNetwork, networkConfig } from '~/lib/sui/networkConfig';
+
+import '@mysten/dapp-kit/dist/index.css';
+
 /**
- * App-wide providers. React Query is the cache/polling layer the Boot_Loader
- * (Phase 0) and later phases build on. Wallet / dapp-kit providers are added in
- * Phase 1; they are intentionally absent from this shell.
+ * App-wide providers. React Query is the cache/polling layer; dapp-kit supplies
+ * the Sui client (network from env, label still from GET /health) and the wallet
+ * adapter. A standard wallet connection is the default, sufficient path.
  */
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -12,7 +17,6 @@ export function Providers({ children }: { children: ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            // Config/health are long-lived once discovered; tune per-query later.
             staleTime: 30_000,
             retry: 1,
             refetchOnWindowFocus: false,
@@ -21,5 +25,11 @@ export function Providers({ children }: { children: ReactNode }) {
       }),
   );
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SuiClientProvider networks={networkConfig} defaultNetwork={defaultNetwork}>
+        <WalletProvider autoConnect>{children}</WalletProvider>
+      </SuiClientProvider>
+    </QueryClientProvider>
+  );
 }

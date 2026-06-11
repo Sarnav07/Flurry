@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 
+import { ConnectBar } from '~/components/wallet/connect-bar';
 import { NetworkBanner } from '~/components/network-banner';
 
 /**
@@ -47,6 +48,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
+
+        <div className="ml-auto">
+          <ConnectBar />
+        </div>
       </header>
 
       <main className="mx-auto w-full max-w-[1200px] flex-1 px-6 py-12">{children}</main>
