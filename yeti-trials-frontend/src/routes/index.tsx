@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
+import { PassportPanel } from '~/components/faction/passport-panel';
 import { useExistingPassportRouting } from '~/lib/state/routing';
 
 export const Route = createFileRoute('/')({
@@ -11,6 +12,8 @@ function Home() {
   const { address, player } = useExistingPassportRouting();
   const connected = address !== null;
   const needsPassport = connected && player?.hasPassport === false;
+
+  if (needsPassport) return <PassportPanel />;
 
   return (
     <section className="flex flex-col gap-6">
@@ -25,9 +28,7 @@ function Home() {
       </p>
       <p className="max-w-[60ch] text-sm text-frost-mist">
         {connected
-          ? needsPassport
-            ? 'No passport yet for this wallet. Faction selection arrives in the next phase.'
-            : 'Reading your passport from the orchestrator.'
+          ? 'Reading your passport from the orchestrator.'
           : 'Connect a standard Sui wallet to begin. That alone is enough to play.'}
       </p>
     </section>
