@@ -76,3 +76,33 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* 2.5D Territory_View: parallax frost layers (gated by reduced-motion above). */
+@keyframes frost-drift-back {
+  from { transform: translate3d(0, 0, 0) scale(1.05); }
+  to { transform: translate3d(-2.5%, 1.5%, 0) scale(1.05); }
+}
+@keyframes frost-drift-fore {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(3%, -1.5%, 0); }
+}
+.frost-parallax-back {
+  background:
+    radial-gradient(120% 90% at 15% 0%, oklch(0.34 0.05 244 / 0.55), transparent 60%),
+    radial-gradient(100% 80% at 85% 100%, oklch(0.30 0.05 268 / 0.45), transparent 55%);
+  animation: frost-drift-back 22s ease-in-out infinite alternate;
+}
+.frost-parallax-fore {
+  background:
+    radial-gradient(60% 50% at 70% 20%, oklch(0.80 0.10 232 / 0.10), transparent 70%);
+  animation: frost-drift-fore 14s ease-in-out infinite alternate;
+}
+.frost-pending {
+  /* Provisional: translucent, soft, clearly not-yet-confirmed. */
+  opacity: 0.62;
+  filter: saturate(0.85);
+}
+.frost-settled {
+  /* Settled: quiet, distinct from a fresh finalize. */
+  filter: saturate(0.7) brightness(0.92);
+}

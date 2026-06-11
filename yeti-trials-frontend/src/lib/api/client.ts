@@ -3,9 +3,14 @@
  * from `import.meta.env.VITE_ORCHESTRATOR_URL`. Methods NEVER throw: every
  * outcome is an `ApiResult`. `u64` strings become `bigint` at this boundary.
  */
-import { parseConfig, parseHealth, parsePlayerState } from '~/lib/types/parse';
-import type { Config, HealthResponse, PlayerState } from '~/lib/types/wire';
-import type { ConfigVM, HealthVM, PlayerStateVM } from '~/lib/types/viewModels';
+import { parseConfig, parseHealth, parsePlayerState, parseTerritoryState } from '~/lib/types/parse';
+import type { Config, HealthResponse, PlayerState, TerritoryState } from '~/lib/types/wire';
+import type {
+  ConfigVM,
+  HealthVM,
+  PlayerStateVM,
+  TerritoryStateVM,
+} from '~/lib/types/viewModels';
 
 export type ApiError =
   | { kind: 'network'; message: string }
@@ -22,6 +27,7 @@ export interface OrchestratorClient {
   getHealth(): Promise<ApiResult<HealthVM>>;
   getConfig(): Promise<ApiResult<ConfigVM>>;
   getPlayer(address: string): Promise<ApiResult<PlayerStateVM>>;
+  getTerritory(): Promise<ApiResult<TerritoryStateVM>>;
 }
 
 export function createOrchestratorClient(
@@ -70,6 +76,15 @@ export function createOrchestratorClient(
       if (!raw.ok) return raw;
       try {
         return ok(parsePlayerState(raw.data));
+      } catch (e) {
+        return fail({ kind: 'parse', message: msg(e) });
+      }
+    },
+    async getTerritory() {
+      const raw = await getRaw<TerritoryState>('/territory');
+      if (!raw.ok) return raw;
+      try {
+        return ok(parseTerritoryState(raw.data));
       } catch (e) {
         return fail({ kind: 'parse', message: msg(e) });
       }
