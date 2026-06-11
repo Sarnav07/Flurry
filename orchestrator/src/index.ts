@@ -42,13 +42,19 @@ export function createDefaultDeps(): AppDeps {
   };
 }
 
+import cors from "@fastify/cors";
+
 /**
  * Construct the Fastify app and register every route. Pure with respect to its
  * `deps`, so tests inject a mock chain / fixture config and drive it with
  * `app.inject()`.
  */
-export function buildApp(deps: AppDeps): FastifyInstance {
+export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
+
+  await app.register(cors, {
+    origin: "*", // allow frontend dev servers
+  });
 
   registerHealth(app, deps);
   registerConfig(app, deps);
@@ -64,7 +70,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
 /** Boot the server (used by `pnpm start` / `pnpm dev`). */
 export async function start(): Promise<void> {
-  const app = buildApp(createDefaultDeps());
+  const app = await buildApp(createDefaultDeps());
   const port = Number(process.env["PORT"] ?? "3000");
   const host = process.env["HOST"] ?? "0.0.0.0";
   await app.listen({ port, host });

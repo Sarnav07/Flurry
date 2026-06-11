@@ -53,6 +53,8 @@ function buildPackage(): CompiledPackage {
       "--dump-bytecode-as-base64",
       "--path",
       CONTRACTS_DIR,
+      "--build-env",
+      "testnet",
     ],
     { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
   );

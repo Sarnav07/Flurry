@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fastify/cors": "^11.2.0",
     "@mysten/sui": "1.18.0",
     "@yeti-trials/shared": "workspace:*",
     "dotenv": "16.4.7",

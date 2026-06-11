@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+/*
+ * Frost_Grade: the single coherent color grade for Yeti Trials.
+ * Cold blue/white base; the warm golden-hour accent is RESERVED for confirmed
+ * ceremonial beats only (impact finalization) and is never used in shell chrome.
+ * OKLCH throughout. The page theme is locked dark (a frozen night world);
+ * sections never invert.
+ */
+
+@theme {
+  /* Cold base ramp (dark theme lock) */
+  --color-frost-void: oklch(0.17 0.028 252);   /* page background */
+  --color-frost-deep: oklch(0.23 0.034 248);   /* recessed surface */
+  --color-frost-surface: oklch(0.29 0.030 244); /* elevated surface */
+  --color-frost-line: oklch(0.42 0.022 244);   /* hairline borders */
+
+  /* Ink ramp (cold whites) */
+  --color-frost-ice: oklch(0.95 0.012 232);    /* primary text */
+  --color-frost-mist: oklch(0.74 0.020 236);   /* secondary text (>=4.5:1 on void) */
+
+  /* Cold accent (interactive / focus). The only chromatic accent in the shell. */
+  --color-frost-glow: oklch(0.80 0.118 232);
+
+  /* RESERVED ceremonial accent: confirmed on-chain beats only. Not shell chrome. */
+  --color-goldenhour: oklch(0.83 0.130 76);
+
+  /* Faction accents, harmonized inside the Frost_Grade palette */
+  --color-faction-glaciers: oklch(0.80 0.105 232);  /* glacial blue */
+  --color-faction-avalanche: oklch(0.88 0.040 250); /* snow white-blue */
+  --color-faction-blizzard: oklch(0.72 0.120 276);  /* storm violet */
+  --color-faction-thaw: oklch(0.81 0.105 196);      /* meltwater cyan */
+
+  /* Semantic z-index scale (no arbitrary 999/9999) */
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-banner: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+
+  --font-display: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background-color: var(--color-frost-void);
+  color: var(--color-frost-ice);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Keyboard focus is always visible (WCAG 2.1 AA). */
+:focus-visible {
+  outline: 2px solid var(--color-frost-glow);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Reduced motion: suppress all non-essential animation and transitions. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -133,7 +133,7 @@ afterEach(() => {
 
 describe("GET /health", () => {
   it("returns status, network, packageId, activeSeason, oracle key id from the artifact", async () => {
-    const app: FastifyInstance = buildApp(makeDeps());
+    const app: FastifyInstance = await buildApp(makeDeps());
     const res = await app.inject({ method: "GET", url: "/health" });
     expect(res.statusCode).toBe(200);
     const body = res.json();
@@ -152,7 +152,7 @@ describe("GET /health", () => {
 
 describe("GET /config", () => {
   it("returns required ids/constants read from the artifact", async () => {
-    const app = buildApp(makeDeps());
+    const app = await buildApp(makeDeps());
     const res = await app.inject({ method: "GET", url: "/config" });
     expect(res.statusCode).toBe(200);
     const cfg = res.json();
@@ -186,7 +186,7 @@ describe("GET /config", () => {
 
 describe("POST /proof/request", () => {
   it("identifies a missing/invalid wallet field", async () => {
-    const app = buildApp(makeDeps());
+    const app = await buildApp(makeDeps());
     const res = await app.inject({
       method: "POST",
       url: "/proof/request",
@@ -198,7 +198,7 @@ describe("POST /proof/request", () => {
   });
 
   it("identifies a season that does not match the active config", async () => {
-    const app = buildApp(makeDeps());
+    const app = await buildApp(makeDeps());
     const res = await app.inject({
       method: "POST",
       url: "/proof/request",
@@ -210,7 +210,7 @@ describe("POST /proof/request", () => {
   });
 
   it("identifies an out-of-range faction", async () => {
-    const app = buildApp(makeDeps());
+    const app = await buildApp(makeDeps());
     const res = await app.inject({
       method: "POST",
       url: "/proof/request",
@@ -222,7 +222,7 @@ describe("POST /proof/request", () => {
   });
 
   it("accepts a valid request and returns a pendingProofId", async () => {
-    const app = buildApp(makeDeps());
+    const app = await buildApp(makeDeps());
     const res = await app.inject({
       method: "POST",
       url: "/proof/request",
@@ -240,7 +240,7 @@ describe("POST /proof/request", () => {
 
 describe("GET /player/:address", () => {
   it("returns the no-passport branch for a wallet with none", async () => {
-    const app = buildApp(makeDeps());
+    const app = await buildApp(makeDeps());
     const res = await app.inject({ method: "GET", url: `/player/${NO_PASSPORT_WALLET}` });
     expect(res.statusCode).toBe(200);
     const body = res.json();
@@ -252,7 +252,7 @@ describe("GET /player/:address", () => {
   });
 
   it("returns passport state for a wallet that owns one", async () => {
-    const app = buildApp(makeDeps());
+    const app = await buildApp(makeDeps());
     const res = await app.inject({ method: "GET", url: `/player/${PLAYER}` });
     expect(res.statusCode).toBe(200);
     const body = res.json();
@@ -271,7 +271,7 @@ describe("GET /player/:address", () => {
 
 describe("GET /territory", () => {
   it("returns the territory shape with shard totals and impact status", async () => {
-    const app = buildApp(makeDeps());
+    const app = await buildApp(makeDeps());
     const res = await app.inject({ method: "GET", url: "/territory" });
     expect(res.statusCode).toBe(200);
     const body = res.json();
@@ -291,7 +291,7 @@ describe("GET /territory", () => {
 
 describe("POST /demo/reset", () => {
   it("rejects the request while DEMO_MODE is disabled", async () => {
-    const app = buildApp(makeDeps({ demoMode: false }));
+    const app = await buildApp(makeDeps({ demoMode: false }));
     const res = await app.inject({ method: "POST", url: "/demo/reset" });
     expect(res.statusCode).toBe(403);
     await app.close();
@@ -306,7 +306,7 @@ describe("POST /demo/reset", () => {
       trialId: 1n,
       factionId: 1,
     });
-    const app = buildApp(deps);
+    const app = await buildApp(deps);
     const res = await app.inject({ method: "POST", url: "/demo/reset" });
     expect(res.statusCode).toBe(200);
     expect(res.json().cleared).toBe(1);
@@ -321,7 +321,7 @@ describe("POST /demo/reset", () => {
 
 describe("POST /proof/attest", () => {
   it("signs for an allowlisted wallet and returns a 64-byte signature, tier 2", async () => {
-    const app = buildApp(makeDeps({ allowlist: [PLAYER] }));
+    const app = await buildApp(makeDeps({ allowlist: [PLAYER] }));
     const reqRes = await app.inject({
       method: "POST",
       url: "/proof/request",
@@ -343,7 +343,7 @@ describe("POST /proof/attest", () => {
   });
 
   it("returns 403 and no signature when the demo condition fails", async () => {
-    const app = buildApp(makeDeps({ allowlist: [] }));
+    const app = await buildApp(makeDeps({ allowlist: [] }));
     const reqRes = await app.inject({
       method: "POST",
       url: "/proof/request",

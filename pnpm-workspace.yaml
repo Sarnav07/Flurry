@@ -2,9 +2,11 @@ packages:
   - "shared"
   - "orchestrator"
   - "scripts"
+  - "yeti-trials-frontend"
 
 allowBuilds:
   esbuild: set this to true or false
+  msw: set this to true or false
 
 # Allow esbuild (pulled in by vitest) to run its install build script so the
 # ignored-builds guard does not block workspace commands.
