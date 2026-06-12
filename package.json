@@ -11,8 +11,8 @@
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
     "typecheck": "pnpm -r exec tsc --noEmit",
-    "move:build": "sui move build --path contracts",
-    "move:test": "sui move test --path contracts",
+    "move:build": "sui move build --path contracts --build-env testnet",
+    "move:test": "sui move test --path contracts --build-env testnet",
     "smoke": "pnpm --filter @yeti-trials/scripts run smoke"
   },
   "devDependencies": {

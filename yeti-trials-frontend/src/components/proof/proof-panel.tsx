@@ -1,4 +1,4 @@
-import { useCurrentAccount } from '@mysten/dapp-kit';
+import { useCurrentAccount, useSuiClient } from '@mysten/dapp-kit';
 import { useState } from 'react';
 
 import { orchestrator } from '~/lib/api/client';
@@ -28,6 +28,7 @@ const STATUS_LABEL: Record<ProofStatus, string> = {
 
 export function ProofPanel() {
   const config = useConfig();
+  const client = useSuiClient();
   const address = useCurrentAccount()?.address ?? null;
   const { data: player } = usePlayer(address);
   const { submit } = useSubmitTransaction();
@@ -79,10 +80,24 @@ export function ProofPanel() {
     try {
       const built = buildSubmitProofTx(config, attestation);
       const result = await submit(built.tx);
-      if (hasProofAccepted(result)) {
+
+      // The dapp-kit execute polyfill may return effects without events. If the
+      // ProofAccepted event is not already present, poll the RPC by digest.
+      let accepted = hasProofAccepted(result);
+      if (!accepted && result.digest !== undefined) {
+        const confirmed = await client.waitForTransaction({
+          digest: result.digest,
+          options: { showEvents: true },
+        });
+        accepted = hasProofAccepted(confirmed);
+      }
+
+      if (accepted) {
         setProofAccepted(true);
         setStatus((s) => (s === null ? s : transition(s, { type: 'proof_accepted' })));
       }
+      // No ProofAccepted event: stay submitting. The cinematic never claims an
+      // acceptance the chain has not confirmed (honesty gating).
     } catch (e) {
       const { code, message } = describeAbort(e);
       setError(message);

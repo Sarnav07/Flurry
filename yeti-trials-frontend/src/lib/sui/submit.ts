@@ -6,14 +6,22 @@ import { env } from '~/env';
 type SignVars = Parameters<
   ReturnType<typeof useSignAndExecuteTransaction>['mutateAsync']
 >[0];
-type SignResult = Awaited<
-  ReturnType<ReturnType<typeof useSignAndExecuteTransaction>['mutateAsync']>
->;
+
+/**
+ * Normalized execution result. dapp-kit's default execute returns the digest
+ * (and, when requested, events); the SDK version skew hides `digest` from the
+ * inferred type, so we expose a stable shape here.
+ */
+export interface SubmitResult {
+  digest?: string;
+  events?: ReadonlyArray<{ type?: string }>;
+}
 
 // Single controlled bridge: app `@mysten/sui` (1.18) Transaction -> dapp-kit's
 // execution hook variables (its bundled SDK). Keeping the cast here means PTB
 // builders import `Transaction` strictly from `@mysten/sui/transactions`.
-const toVars = (tx: Transaction): SignVars => ({ transaction: tx } as unknown as SignVars);
+const toVars = (tx: Transaction): SignVars =>
+  ({ transaction: tx, options: { showEvents: true } } as unknown as SignVars);
 
 /** Sponsorship infra is not wired in V1; callers always fall back to direct. */
 async function sponsored(_tx: Transaction): Promise<never> {
@@ -28,9 +36,10 @@ async function sponsored(_tx: Transaction): Promise<never> {
  */
 export function useSubmitTransaction() {
   const { mutateAsync } = useSignAndExecuteTransaction();
-  const direct = (tx: Transaction): Promise<SignResult> => mutateAsync(toVars(tx));
+  const direct = async (tx: Transaction): Promise<SubmitResult> =>
+    (await mutateAsync(toVars(tx))) as unknown as SubmitResult;
 
-  async function submit(tx: Transaction): Promise<SignResult> {
+  async function submit(tx: Transaction): Promise<SubmitResult> {
     if (env.enableZkLogin) {
       try {
         await sponsored(tx);

@@ -29,6 +29,7 @@
     "@noble/curves": "^1.9.0",
     "@noble/hashes": "^1.8.0",
     "@yeti-trials/orchestrator": "workspace:*",
-    "@yeti-trials/shared": "workspace:*"
+    "@yeti-trials/shared": "workspace:*",
+    "dotenv": "16.4.7"
   }
 }

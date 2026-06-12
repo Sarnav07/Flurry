@@ -12,7 +12,10 @@ const PASS = A('c3');
 const SHARD = A('d4');
 const h = vi.hoisted(() => ({ submit: vi.fn() }));
 
-vi.mock('@mysten/dapp-kit', () => ({ useCurrentAccount: () => ({ address: WALLET }) }));
+vi.mock('@mysten/dapp-kit', () => ({
+  useCurrentAccount: () => ({ address: WALLET }),
+  useSuiClient: () => ({ waitForTransaction: vi.fn().mockResolvedValue({ events: [] }) }),
+}));
 vi.mock('~/lib/sui/submit', () => ({ useSubmitTransaction: () => ({ submit: h.submit, direct: h.submit }) }));
 
 import { ProofPanel } from '~/components/proof/proof-panel';

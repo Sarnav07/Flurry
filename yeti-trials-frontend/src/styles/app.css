@@ -106,3 +106,28 @@ body {
   /* Settled: quiet, distinct from a fresh finalize. */
   filter: saturate(0.7) brightness(0.92);
 }
+
+/* Screen-reader-only utility for text alternatives. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Golden-hour ceremony: the ONLY warm treatment, reserved for the confirmed
+ * impact-finalized beat. The pulse is disabled under reduced motion by the
+ * global rule above; the static warm card remains as the equivalent state. */
+@keyframes golden-hour-rise {
+  from { box-shadow: inset 0 0 0 1px oklch(0.83 0.13 76 / 0.2); }
+  to { box-shadow: inset 0 0 28px 0 oklch(0.83 0.13 76 / 0.35); }
+}
+.golden-hour {
+  border-color: var(--color-goldenhour);
+  animation: golden-hour-rise 2.4s ease-in-out infinite alternate;
+}

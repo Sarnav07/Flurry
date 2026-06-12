@@ -67,9 +67,13 @@ export function ImpactCard({
       </div>
 
       {impact.disbursed && !revealDismissed && revealHeading !== undefined ? (
-        // Functional finalization reveal (golden-hour cinema deferred to Phase 7);
-        // no animation, so reduced-motion is honored by construction.
-        <div data-testid="impact-reveal" className="flex flex-col gap-2 rounded border border-frost-line bg-frost-surface p-5">
+        // Functional golden-hour finalization reveal. The warm treatment is
+        // reserved to this confirmed disbursed beat; under reduced motion the
+        // pulse is disabled (global rule) leaving the equivalent static card.
+        <div
+          data-testid="impact-reveal"
+          className="golden-hour flex flex-col gap-2 rounded border border-frost-line bg-frost-surface p-5"
+        >
           <h2 className="text-lg font-semibold text-frost-ice">{revealHeading}</h2>
           {recipientLine !== undefined ? (
             <p className="font-mono text-sm text-frost-mist">{recipientLine}</p>

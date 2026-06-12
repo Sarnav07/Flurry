@@ -20,6 +20,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { config as loadDotenv } from "dotenv";
 import { fromBase64, fromHex } from "@mysten/sui/utils";
 import { SuiClient, getFullnodeUrl } from "@mysten/sui/client";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
@@ -42,6 +43,12 @@ export type { SuiClient } from "@mysten/sui/client";
 const HERE = dirname(fileURLToPath(import.meta.url));
 /** Repo root (scripts/src -> scripts -> repo). */
 export const REPO_ROOT = resolve(HERE, "..", "..");
+
+// Load `.env` from the repo root (mirrors orchestrator/src/config.ts). dotenv
+// never overrides values already present in `process.env`, so a value exported
+// in the shell still wins and a missing `.env` is a silent no-op.
+loadDotenv({ path: resolve(REPO_ROOT, ".env") });
+
 /** The Move package directory published by `publish.ts`. */
 export const CONTRACTS_DIR = resolve(REPO_ROOT, "contracts");
 /** Directory the per-network artifact is written to (the scripts package). */

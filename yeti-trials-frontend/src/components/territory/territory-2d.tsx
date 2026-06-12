@@ -48,6 +48,7 @@ export function Territory2D({
           <h2 className="text-lg font-semibold tracking-tight text-frost-ice">Territory</h2>
           <span
             data-testid="lifecycle"
+            aria-label={`Map state: ${LIFECYCLE_LABEL[lifecycle]}`}
             className="rounded border border-frost-line px-2 py-0.5 text-xs text-frost-mist"
           >
             {LIFECYCLE_LABEL[lifecycle]}

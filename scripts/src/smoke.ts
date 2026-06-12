@@ -444,7 +444,7 @@ async function runFlow(
   // --- 5. Start orchestrator in-process; drive real chain reads -------------
   process.env["DEMO_MODE"] = "true";
   process.env["DEMO_ALLOWLIST"] = playerAddr.toLowerCase();
-  const app = orch.buildApp(orch.createDefaultDeps());
+  const app = await orch.buildApp(orch.createDefaultDeps());
 
   // /player BEFORE submit — validates chain.ts passport parsing on real shapes.
   const playerBeforeRes = await app.inject({ method: "GET", url: `/player/${playerAddr}` });
